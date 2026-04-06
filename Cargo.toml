@@ -1,0 +1,18 @@
+[package]
+name = "win-emerge"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+clap = { version = "4.6.0", features = ["derive"] }
+git2 = "0.20.4"
+indicatif = { version = "0.18.4", features = ["improved_unicode"] }
+mlua = { version = "0.11.6", features = ["anyhow", "lua54", "vendored"] }
+natord = "1.0.9"
+num_cpus = "1.17.0"
+platform-dirs = "0.3.0"
+regex = "1.12.3"
+reqwest = { version = "0.13.2", features = ["blocking", "stream"] }
+serde = { version = "1.0.228", features = ["derive", "serde_derive"] }
+zstd = "0.13.3"
