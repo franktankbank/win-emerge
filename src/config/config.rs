@@ -1,5 +1,7 @@
 #[path = "../core.rs"]
 mod core;
+#[path = "../wsl.rs"]
+mod wsl;
 
 use std::{fs, process::Command};
 
@@ -8,6 +10,7 @@ use anyhow::Result;
 use num_cpus;
 
 use core::{latest_version, IMPORTANT_DIRS};
+use wsl::DISTRO_NAME;
 
 #[derive(Clone)]
 pub struct Context {
@@ -89,7 +92,8 @@ pub struct PackageMetadata {
     pub name: String,
     pub version: String,
     pub source_url: String,
-    pub dependencies: Vec<String>
+    pub dependencies: Vec<String>,
+    pub build_mode: String
 }
 
 #[derive(Clone)]
@@ -104,9 +108,16 @@ pub struct PackageRuntime {
 }
 
 impl PackageRuntime {
-    pub fn new(lua: &Lua) -> mlua::Result<Self> {
+    pub fn new(lua: &Lua, mode: &str) -> mlua::Result<Self> {
+        let prefix: String = match mode {
+            "native" => IMPORTANT_DIRS.prefix.to_string_lossy().into(),
+            "wsl" => {
+                wslpath2::convert(IMPORTANT_DIRS.prefix.to_str().unwrap(), Some(DISTRO_NAME), wslpath2::Conversion::WindowsToWsl, true).unwrap()
+            },
+            _ => return Err(LuaError::external("Invalid build_mode detected. Only 'wsl' and 'native' are valid."))
+        };
         let ctx = Context {
-            prefix: IMPORTANT_DIRS.prefix.to_string_lossy().into(),
+            prefix: prefix,
             target: "x86_64-w64-mingw32".to_string(),
             jobs: num_cpus::get()
         };
@@ -149,6 +160,8 @@ pub fn load_package(lua: &Lua, package: &str) -> Result<Package> {
         let version: String = table.get("version")?;
         let url: String = source.get("url")?;
 
+        let mode: String = table.get("build_mode")?;
+
         // Extract dependencies
         let deps: Vec<String> = table.get("dependencies").unwrap_or_else(|_| Vec::new());
 
@@ -162,7 +175,8 @@ pub fn load_package(lua: &Lua, package: &str) -> Result<Package> {
             name,
             version,
             source_url: url,
-            dependencies: deps
+            dependencies: deps,
+            build_mode: mode
         };
         // Store everything in Package struct
         let pkg = Package {

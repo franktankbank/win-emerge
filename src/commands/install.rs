@@ -10,7 +10,7 @@ pub fn install(package: &str) -> anyhow::Result<()> {
 
     let pkg: Package = load_package(&lua, package)?;
 
-    let runtime: PackageRuntime = PackageRuntime::new(&lua)?;
+    let runtime: PackageRuntime = PackageRuntime::new(&lua, &pkg.metadata.build_mode.as_str())?;
 
     println!("Building: {}", package);
     runtime.run_build(&pkg.build)?;
