@@ -50,9 +50,15 @@ pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, anyhow::Error>
         .iter()
         .filter_map(|r| Some(r.name()))
         .map(|n| n.strip_prefix("refs/tags/").unwrap_or(n).to_string())
+        .map(|n| n.strip_suffix("^{}").unwrap_or(&n).to_string())
         .filter(|name| re.is_match(name))
         .collect();
 
+        // for tag in tags {
+        //     println!("{}", tag);
+        // }
+
+        // Ok("".to_string())
     // Sort naturally
     tags.sort_by(|a, b| compare(a, b));
     tags.pop().ok_or_else(|| anyhow!("No tags matched regex: {}", pattern))
