@@ -3,22 +3,25 @@ mod core;
 #[path = "../wsl.rs"]
 mod wsl;
 
-use std::{fs, process::Command};
+use std::{fs, path::PathBuf, process::Command};
 
 use mlua::{Lua, prelude::{LuaUserData, LuaUserDataMethods, LuaError, LuaFunction, LuaAnyUserData, LuaTable}};
 use anyhow::Result;
 use num_cpus;
 
 use core::{latest_version, IMPORTANT_DIRS};
-use wsl::DISTRO_NAME;
+use wsl::{DISTRO_NAME, setup_shell, wsl_write_to_stdin};
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct Context {
     pub prefix: String,
     pub target: String,
-    pub jobs: usize
+    pub jobs: usize,
+    pub mode: String
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Default)]
 pub struct Vcpkg {
     pub prefix: String
@@ -63,27 +66,48 @@ impl LuaUserData for Vcpkg {
 
 impl LuaUserData for Context {
     fn add_methods<M: LuaUserDataMethods<Self>>(methods: &mut M) {
-        methods.add_method("run", |_, _this, cmd: String| {
+        methods.add_method("run", |_, this, cmd: String| {
             println!("Running: {}", &cmd);
+            match this.mode.as_str() {
+                "native" => {
+                    // Split command into program + args
+                    let mut parts = cmd.split_whitespace();
+                    let program = parts.next().ok_or_else(|| LuaError::external("empty command"))?;
 
-            // Split command into program + args
-            let mut parts = cmd.split_whitespace();
-            let program = parts.next().ok_or_else(|| LuaError::external("empty command"))?;
+                    let output = Command::new(program)
+                        .args(parts)
+                        .status()
+                        .map_err(LuaError::external)?;
 
-            let output = Command::new(program)
-                .args(parts)
-                .status()
-                .map_err(LuaError::external)?;
-
-            if !output.success() {
-                return Err(LuaError::external(format!(
-                    "command failed: {}",
-                    cmd
-                )));
+                    if !output.success() {
+                        return Err(LuaError::external(format!(
+                            "command failed: {}",
+                            cmd
+                        )));
+                    }
+                },
+                "wsl" => {
+                        wsl_write_to_stdin(cmd);
+                },
+                _ => return Err(LuaError::external(format!(
+                    "Mode '{}' is not a valid mode",
+                    this.mode
+                )))
             }
-
             Ok(())
         });
+    }
+}
+
+#[allow(dead_code)]
+impl Context {
+    pub fn new(prefix: String, target: String, jobs: usize, mode: String) -> Self {
+        Self {
+            prefix: prefix,
+            target: target,
+            jobs: jobs,
+            mode: mode
+        }
     }
 }
 
@@ -108,19 +132,17 @@ pub struct PackageRuntime {
 }
 
 impl PackageRuntime {
-    pub fn new(lua: &Lua, mode: &str) -> mlua::Result<Self> {
+    pub fn new(lua: &Lua, mode: &str, build_path: PathBuf) -> mlua::Result<Self> {
         let prefix: String = match mode {
             "native" => IMPORTANT_DIRS.prefix.to_string_lossy().into(),
             "wsl" => {
+                setup_shell();
+                wsl_write_to_stdin(format!("cd '{}'", build_path.to_str().unwrap()));
                 wslpath2::convert(IMPORTANT_DIRS.prefix.to_str().unwrap(), Some(DISTRO_NAME), wslpath2::Conversion::WindowsToWsl, true).unwrap()
             },
             _ => return Err(LuaError::external("Invalid build_mode detected. Only 'wsl' and 'native' are valid."))
         };
-        let ctx = Context {
-            prefix: prefix,
-            target: "x86_64-w64-mingw32".to_string(),
-            jobs: num_cpus::get()
-        };
+        let ctx = Context::new(prefix, "x86_64-w64-mingw32".to_string(), num_cpus::get(), mode.to_string());
 
         let ctx_lua = lua.create_userdata(ctx)?;
 

@@ -1,5 +1,6 @@
-use std::process::{Command, Stdio};
-use std::io::{BufRead, BufReader};
+use std::process::{Command, Stdio, Child};
+use std::io::{BufRead, BufReader, Write};
+use std::sync::{OnceLock, Mutex};
 use anyhow::{Result, Error};
 
 #[derive(Debug)]
@@ -9,6 +10,24 @@ pub struct WslHelper {
 
 pub static DISTRO_NAME: &str = "win-emerge";
 pub static WSL_USER: &str = "builder";
+pub static WSL_SHELL: OnceLock<Mutex<Option<Child>>> = OnceLock::new();
+
+pub fn setup_shell() {
+    let child = Command::new("wsl")
+        .args(["--distribution", DISTRO_NAME, "--user", WSL_USER])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("Failed to spawn wsl instance");
+    WSL_SHELL.get_or_init(|| Mutex::new(Some(child)));
+}
+
+pub fn wsl_write_to_stdin(cmd: String) {
+    let mut guard = WSL_SHELL.get().unwrap().lock().unwrap();
+    let child = guard.as_mut().unwrap();
+    let stdin = child.stdin.as_mut().unwrap();
+    let _ = writeln!(stdin, "{}", cmd);
+}
 
 impl WslHelper {
     pub fn new() -> Self {

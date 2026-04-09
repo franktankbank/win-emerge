@@ -6,6 +6,8 @@ mod download;
 mod decompress;
 #[path = "../wsl.rs"]
 mod wsl;
+#[path = "../windows.rs"]
+mod windows;
 
 use std::{fs, process::Command};
 
@@ -16,6 +18,7 @@ use core::{APP_DIRS, IMPORTANT_DIRS, get_latest_tag};
 use download::DownloadResult;
 use decompress::ZstdDec;
 use wsl::WslHelper;
+use windows::reg;
 
 pub fn init(force: bool) -> Result<(), Error> {
     let mut wsl_helper = WslHelper::new();
@@ -88,6 +91,11 @@ pub fn init(force: bool) -> Result<(), Error> {
     repo_builder.clone(recipes_url, &IMPORTANT_DIRS.recipes)?;
 
     match Command::new(&IMPORTANT_DIRS.vcpkg.join("bootstrap-vcpkg.bat")).arg("-disableMetrics").output() {
+        Ok(_) => (),
+        Err(e) => return Err(e.into())
+    };
+
+    match reg::write_initialized_flag() {
         Ok(_) => Ok(()),
         Err(e) => Err(e.into())
     }
