@@ -4,19 +4,19 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-anyhow = "1.0.102"
-clap = { version = "4.6.0", features = ["derive"] }
-git2 = "0.20.4"
-indicatif = { version = "0.18.4", features = ["improved_unicode"] }
+anyhow = { version = "1.0.102", features = ["backtrace"] }
+clap = { version = "4.6.0", features = ["color", "derive", "error-context", "help", "std", "unicode", "usage", "wrap_help"], default-features = false }
+git2 = { version = "0.20.4", default-features = false, features = ["https", "vendored-libgit2", "vendored-openssl"] }
+indicatif = { version = "0.18.4", features = ["improved_unicode", "rayon"] }
 mlua = { version = "0.11.6", features = ["anyhow", "lua54", "vendored"] }
 natord = "1.0.9"
 num_cpus = "1.17.0"
 platform-dirs = "0.3.0"
 regex = "1.12.3"
-reqwest = { version = "0.13.2", features = ["blocking", "stream"] }
+reqwest = { version = "0.13.2", default-features = false, features = ["native-tls", "http2", "stream", "charset", "blocking"] }
 serde = { version = "1.0.228", features = ["derive", "serde_derive"] }
 wslpath2 = "0.1.3"
-zstd = "0.13.3"
+zstd = { version = "0.13.3", default-features = false }
 
-[target.'cfg(windows)'.dependencies]
+[target.windows.dependencies]
 winreg = "0.56.0"
