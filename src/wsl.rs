@@ -1,5 +1,5 @@
 use std::process::{Command, Stdio, Child};
-use std::io::{BufRead, BufReader, Write};
+use std::io::Write;
 use std::sync::{OnceLock, Mutex};
 use anyhow::{Result, Error};
 
@@ -31,24 +31,20 @@ pub fn wsl_write_to_stdin(cmd: String) {
 
 impl WslHelper {
     pub fn new() -> Self {
-        let stdout = Command::new("wsl")
+        let output = Command::new("wsl")
             .arg("--status")
-            .stdout(Stdio::piped())
-            .spawn()
-            .expect("Failed to spawn process")
-            .stdout
-            .expect("Could not capture standard output");
+            .output()
+            .expect("Failed to run wsl --status");
 
-        let reader = BufReader::new(stdout);
-
-        let results = reader
+        let results = String::from_utf8_lossy(&output.stdout)
             .lines()
-            .filter_map(|line| line.ok())
-            .filter(|line| line.contains("WSL2 is not supported with your current machine configuration."))
+            .filter(|line| line.contains(
+                "WSL2 is not supported with your current machine configuration."
+            ))
             .count();
 
         return Self {
-            installed: results > 0
+            installed: results == 0
         }
     }
 
