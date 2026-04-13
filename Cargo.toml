@@ -14,7 +14,7 @@ num_cpus = "1.17.0"
 platform-dirs = "0.3.0"
 regex = "1.12.3"
 reqwest = { version = "0.13.2", default-features = false, features = ["native-tls", "http2", "stream", "charset", "blocking"] }
-serde = { version = "1.0.228", features = ["derive", "serde_derive"] }
+thiserror = "2.0.18"
 wslpath2 = "0.1.3"
 zstd = { version = "0.13.3", default-features = false }
 
