@@ -1,5 +1,10 @@
 mod core;
 mod commands;
+mod download;
+mod decompress;
+mod windows;
+mod wsl;
+mod error;
 #[path = "config/config.rs"]
 mod config;
 
@@ -8,6 +13,7 @@ use clap::Parser;
 use commands::init;
 use commands::install;
 use commands::Commands;
+use error::WinEmergeError;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -17,15 +23,19 @@ struct Cli {
     command: Option<Commands>
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<(), WinEmergeError> {
     let cli: Cli = Cli::parse();
 
     match &cli.command {
         Some(Commands::Init { force }) => {
-            init(*force)
+            Ok(init(*force)?)
         },
         Some(Commands::Install { package }) => {
-            install(package.as_ref().expect("No package given").as_str())
+            let pkg = match package {
+                Some(pkg) => pkg.as_str(),
+                None => return Err(WinEmergeError::NoPackageGiven)
+            };
+            Ok(install(pkg)?)
         }
         None => Ok(())
     }

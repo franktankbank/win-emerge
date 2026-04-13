@@ -4,7 +4,8 @@ use platform_dirs::AppDirs;
 use git2::{Repository, Direction};
 use natord::compare;
 use regex::Regex;
-use anyhow::anyhow;
+
+use crate::error::CoreError;
 
 pub static APP_DIRS: LazyLock<AppDirs> = LazyLock::new(|| {
     AppDirs::new(Some(env!("CARGO_PKG_NAME")), false).unwrap()
@@ -28,7 +29,7 @@ pub fn latest_version(url: &str, method: &str, pattern: &str) -> String {
     }
 }
 
-pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, anyhow::Error> {
+pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, CoreError> {
     let repo = Repository::open(".")?;
     let mut remote = repo
         .find_remote(url)
@@ -38,13 +39,15 @@ pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, anyhow::Error>
     // remote references.
     let connection = match remote.connect_auth(Direction::Fetch, None, None) {
         Ok(connection) => connection,
-        Err(e) => panic!("Failed to connect to remote {}", e)
+        Err(e) => return Err(CoreError::GitConnection(e))
     };
 
     // Get the list of references on the remote and print out their name next to
     // what they point to.
-    let re = Regex::new(pattern)
-        .map_err(|e| anyhow!("Invalid regex: {}", e))?;
+    let re = match Regex::new(pattern) {
+        Ok(re) => re,
+        Err(e) => return Err(CoreError::InvalidRegex(e))
+    };
 
     let mut tags: Vec<String> = connection.list()?
         .iter()
@@ -56,5 +59,5 @@ pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, anyhow::Error>
 
     // Sort naturally
     tags.sort_by(|a, b| compare(a, b));
-    tags.pop().ok_or_else(|| anyhow!("No tags matched regex: {}", pattern))
+    tags.pop().ok_or_else(|| CoreError::NoMatchRegex(pattern.to_string()))
 }

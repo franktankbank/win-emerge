@@ -1,16 +1,11 @@
-#[path = "../core.rs"]
-mod core;
-#[path = "../wsl.rs"]
-mod wsl;
-
 use std::{fs, path::PathBuf, process::Command};
 
 use mlua::{Lua, prelude::{LuaUserData, LuaUserDataMethods, LuaError, LuaFunction, LuaAnyUserData, LuaTable}};
-use anyhow::Result;
 use num_cpus;
 
-use core::{latest_version, IMPORTANT_DIRS};
-use wsl::{DISTRO_NAME, setup_shell, wsl_write_to_stdin};
+use crate::core::{latest_version, IMPORTANT_DIRS};
+use crate::wsl::{DISTRO_NAME, setup_shell, wsl_write_to_stdin};
+use crate::error::ConfigError;
 
 #[allow(dead_code)]
 #[derive(Clone)]
@@ -87,7 +82,7 @@ impl LuaUserData for Context {
                     }
                 },
                 "wsl" => {
-                        wsl_write_to_stdin(cmd);
+                        wsl_write_to_stdin(cmd).map_err(|e| LuaError::external(e))?;
                 },
                 _ => return Err(LuaError::external(format!(
                     "Mode '{}' is not a valid mode",
@@ -99,7 +94,6 @@ impl LuaUserData for Context {
     }
 }
 
-#[allow(dead_code)]
 impl Context {
     pub fn new(prefix: String, target: String, jobs: usize, mode: String) -> Self {
         Self {
@@ -136,8 +130,8 @@ impl PackageRuntime {
         let prefix: String = match mode {
             "native" => IMPORTANT_DIRS.prefix.to_string_lossy().into(),
             "wsl" => {
-                setup_shell();
-                wsl_write_to_stdin(format!("cd '{}'", build_path.to_str().unwrap()));
+                setup_shell().map_err(|e| LuaError::external(e))?;
+                wsl_write_to_stdin(format!("cd '{}'", build_path.to_str().unwrap())).map_err(|e| LuaError::external(e))?;
                 wslpath2::convert(IMPORTANT_DIRS.prefix.to_str().unwrap(), Some(DISTRO_NAME), wslpath2::Conversion::WindowsToWsl, true).unwrap()
             },
             _ => return Err(LuaError::external("Invalid build_mode detected. Only 'wsl' and 'native' are valid."))
@@ -158,7 +152,7 @@ impl PackageRuntime {
     }
 }
 
-pub fn load_package(lua: &Lua, package: &str) -> Result<Package> {
+pub fn load_package(lua: &Lua, package: &str) -> Result<Package, ConfigError> {
     let globals = lua.globals();
 
     // Inject "latest_version" into Lua for expressions inside the recipe
@@ -221,9 +215,10 @@ pub fn load_package(lua: &Lua, package: &str) -> Result<Package> {
     lua.load(&code).exec()?;
 
     // Retrieve the constructed package
-    let pkg = package_out.borrow_mut().take().ok_or_else(|| {
-        anyhow::anyhow!("Lua recipe file did not call package")
-    })?;
+    let pkg = match package_out.borrow_mut().take() {
+        Some(pkg) => pkg,
+        None => return Err(ConfigError::PackageNotCalled)
+    };
 
     Ok(pkg)
 

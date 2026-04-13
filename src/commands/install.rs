@@ -1,26 +1,17 @@
-#[path = "../config/config.rs"]
-mod config;
-#[path = "../windows.rs"]
-mod windows;
-#[path = "../wsl.rs"]
-mod wsl;
-
 use std::path::Path;
 
 use mlua::Lua;
-use anyhow::{Result, Error};
 use git2::build::RepoBuilder;
 
-use config::{PackageRuntime, load_package, Package};
-use windows::reg;
-use wsl::WSL_USER;
+use crate::config::{PackageRuntime, load_package, Package};
+use crate::windows::reg;
+use crate::wsl::{WSL_USER, wsl_write_to_stdin};
+use crate::error::{InstallError, ConfigError};
 
-use crate::commands::install::wsl::wsl_write_to_stdin;
-
-pub fn install(package: &str) -> Result<()> {
+pub fn install(package: &str) -> Result<(), InstallError> {
     match reg::read_initialized_flag() {
         true => (),
-        false => return Err(Error::msg("win-emerge is not initialized. Please run 'win-emerge init'"))
+        false => return Err(InstallError::Init)
     };
     let lua: Lua = Lua::new();
 
@@ -31,7 +22,7 @@ pub fn install(package: &str) -> Result<()> {
     let path = Path::new("/home").join(WSL_USER).join(&pkg.metadata.name);
     let _ = repo_builder.clone(&pkg.metadata.source_url, path.as_path())?;
 
-    let runtime: PackageRuntime = PackageRuntime::new(&lua, &pkg.metadata.build_mode.as_str(), path.clone())?;
+    let runtime: PackageRuntime = PackageRuntime::new(&lua, &pkg.metadata.build_mode.as_str(), path.clone()).map_err(|e| ConfigError::Lua(e))?;
 
     println!("Building: {}", package);
     runtime.run_build(&pkg.build)?;
@@ -39,8 +30,8 @@ pub fn install(package: &str) -> Result<()> {
     println!("Installing: {}", package);
     runtime.run_install(&pkg.install)?;
 
-    wsl_write_to_stdin("cd".to_string());
-    wsl_write_to_stdin(format!("rm -rf '{}'", path.to_str().unwrap()));
+    wsl_write_to_stdin("cd".to_string())?;
+    wsl_write_to_stdin(format!("rm -rf '{}'", path.to_str().unwrap()))?;
 
     Ok(())
 }
