@@ -45,24 +45,24 @@ pub fn wsl_write_to_stdin(cmd: String) -> Result<(), WslError> {
 impl WslHelper {
     pub fn new() -> Result<Self, WslError> {
         let output = Command::new("wsl")
-            .arg("--status")
-            .output()?;
+        .arg("--status")
+        .output();
 
-        let results = String::from_utf8_lossy(&output.stdout)
-            .lines()
-            .filter(|line| line.contains(
-                "WSL2 is not supported with your current machine configuration."
-            ))
-            .count();
-
-        return Ok(Self {
-            installed: results == 0
-        })
+        if let Ok(output) = output {
+            let stdout = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            return Ok(Self {
+                installed: stdout.contains("default version: 2") || stdout.contains("wsl version: 2")
+            })
+        } else {
+            return Ok(Self {
+                installed: false
+            })
+        }
     }
 
     pub fn install(&mut self) -> Result<(), WslError> {
         match Command::new("wsl").args(["--install", "--no-distribution"]).output() {
-            Ok(_) => {
+            Ok(output) => {
                 self.installed = true;
                 Ok(())
             },

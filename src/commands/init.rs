@@ -1,6 +1,7 @@
 use std::{fs, process::Command};
 
 use git2::Repository;
+use deelevate::spawn_with_elevated_privileges;
 
 use crate::core::{APP_DIRS, IMPORTANT_DIRS, get_latest_tag};
 use crate::download::download;
@@ -10,6 +11,7 @@ use crate::windows::reg;
 use crate::error::InitError;
 
 pub fn init(force: bool) -> Result<(), InitError> {
+    spawn_with_elevated_privileges();
     let mut wsl_helper = WslHelper::new()?;
 
     if !wsl_helper.installed {
