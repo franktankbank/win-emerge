@@ -10,8 +10,13 @@ use crate::error::{InstallError, ConfigError};
 
 pub fn install(package: &str) -> Result<(), InstallError> {
     match reg::read_initialized_flag() {
-        true => (),
-        false => return Err(InstallError::Init)
+        Ok(result) => {
+            match result {
+                true => (),
+                false => return Err(InstallError::Init)
+            }
+        },
+        Err(_) => return Err(InstallError::Init)
     };
     let lua: Lua = Lua::new();
 

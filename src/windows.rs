@@ -17,14 +17,14 @@ pub mod reg {
         let path = Path::new("Software").join("WinEmerge");
         let key: RegKey = match hkcu.open_subkey(&path) {
             Ok(key) => key,
-            Err(_) => return false
+            Err(_) => return Ok(false)
         };
         let val: u32 = match key.get_value("Initialized") {
             Ok(val) => val,
-            Err(_) => return false
+            Err(_) => return Ok(false)
         };
 
-        return val == 1;
+        return Ok(val == 1);
     }
 
 }
@@ -37,7 +37,7 @@ pub mod reg {
         panic!("Unsupported Platform '{}'", env::consts::OS);
     }
 
-    pub fn read_initialized_flag() -> bool {
+    pub fn read_initialized_flag() -> io::Result<bool> {
         panic!("Unsupported Platform '{}'", env::consts::OS);
     }
 }
