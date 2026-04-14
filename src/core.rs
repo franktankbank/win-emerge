@@ -22,6 +22,16 @@ pub static IMPORTANT_DIRS: LazyLock<ImportantDirs> = LazyLock::new(|| {
     ImportantDirs { vcpkg: APP_DIRS.data_dir.join("vcpkg"), recipes: APP_DIRS.data_dir.join("recipes"), prefix: APP_DIRS.data_dir.join("opt"), sysroot: APP_DIRS.data_dir.join("vcpkg").join("installed").join("x64-mingw-static-release") }
 });
 
+pub fn utf16le_to_string(bytes: &[u8]) -> String {
+    let mut u16_vec = Vec::with_capacity(bytes.len() / 2);
+
+    for chunk in bytes.chunks_exact(2) {
+        u16_vec.push(u16::from_le_bytes([chunk[0], chunk[1]]));
+    }
+
+    String::from_utf16_lossy(&u16_vec)
+}
+
 pub fn latest_version(url: &str, method: &str, pattern: &str) -> String {
     match method {
         "git" => get_latest_tag(url, pattern).expect("failed to get latest tag"),

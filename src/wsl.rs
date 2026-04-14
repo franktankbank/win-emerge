@@ -2,6 +2,7 @@ use std::process::{Command, Stdio, Child};
 use std::io::Write;
 use std::sync::{OnceLock, Mutex};
 
+use crate::core::utf16le_to_string;
 use crate::error::WslError;
 use crate::windows::elevate;
 
@@ -50,7 +51,7 @@ impl WslHelper {
         .output();
 
         if let Ok(output) = output {
-            let stdout = String::from_utf8_lossy(&output.stdout).to_lowercase();
+            let stdout = utf16le_to_string(&output.stdout).to_lowercase();
             return Ok(Self {
                 installed: stdout.contains("default version: 2") || stdout.contains("wsl version: 2")
             })
