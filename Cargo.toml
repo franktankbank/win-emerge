@@ -17,5 +17,5 @@ thiserror = "2.0.18"
 wslpath2 = "0.1.3"
 zstd = { version = "0.13.3", default-features = false }
 
-[target.windows.dependencies]
+[target.'cfg(windows)'.dependencies]
 winreg = "0.56.0"
