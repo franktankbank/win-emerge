@@ -61,19 +61,21 @@ impl WslHelper {
     }
 
     pub fn install(&mut self) -> Result<(), WslError> {
-        match Command::new("wsl").args(["--install", "--no-distribution"]).output() {
-            Ok(output) => {
-                self.installed = true;
-                Ok(())
-            },
-            Err(e) => Err(WslError::Command(e))
+        let code = Command::new("powershell").args(["-NoProfile", "-Command", "wsl --install --no-distribution"]).spawn()?.wait()?;
+        if code.success() {
+            self.installed = true;
+            Ok(())
+        } else {
+            Err(WslError::Child)
         }
     }
 
     pub fn setup_distro(&self, vhdx_path: &str) -> Result<(), WslError> {
-        match Command::new("wsl").args(["--import-in-place", DISTRO_NAME, vhdx_path]).output() {
-            Ok(_) => Ok(()),
-            Err(e) => Err(WslError::Command(e))
+        let code = Command::new("powershell").args(["-NoProfile", "-Command", format!("wsl --import-in-place {} {}", DISTRO_NAME, vhdx_path)]).spawn()?.wait()?;
+        if code.success() {
+            Ok(())
+        } else {
+            Err(WslError::Child)
         }
     }
 }
