@@ -1,8 +1,9 @@
 #[cfg(target_family = "windows")]
 pub mod reg {
+    use std::{io, path::Path};
+
     use winreg::RegKey;
     use winreg::enums::HKEY_CURRENT_USER;
-    use std::{io, path::Path};
 
     pub fn write_initialized_flag() -> io::Result<()> {
         let hkcu = RegKey::predef(HKEY_CURRENT_USER);
@@ -29,6 +30,24 @@ pub mod reg {
 
 }
 
+#[cfg(target_family = "windows")]
+pub mod elevate {
+    use std::io;
+
+    use deelevate::{Token, PrivilegeLevel, spawn_with_elevated_privileges};
+
+    pub fn elevate_if_needed() -> io::Result<()> {
+        let token = Token::with_current_process()?;
+        match token.privilege_level()? {
+            PrivilegeLevel::NotPrivileged => {
+                spawn_with_elevated_privileges()?;
+                Ok(())
+            },
+            _ => Ok(())
+        }
+    }
+}
+
 #[cfg(not(target_family = "windows"))]
 pub mod reg {
     use std::{io, env};
@@ -38,6 +57,14 @@ pub mod reg {
     }
 
     pub fn read_initialized_flag() -> io::Result<bool> {
+        panic!("Unsupported Platform '{}'", env::consts::OS);
+    }
+}
+
+#[cfg(not(target_family = "windows"))]
+pub mod elevate {
+    use std::{io, env};
+    pub fn elevate_if_needed() -> io::Result<()> {
         panic!("Unsupported Platform '{}'", env::consts::OS);
     }
 }

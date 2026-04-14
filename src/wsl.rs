@@ -3,6 +3,7 @@ use std::io::Write;
 use std::sync::{OnceLock, Mutex};
 
 use crate::error::WslError;
+use crate::windows::elevate;
 
 #[derive(Debug)]
 pub struct WslHelper {
@@ -61,6 +62,7 @@ impl WslHelper {
     }
 
     pub fn install(&mut self) -> Result<(), WslError> {
+        elevate::elevate_if_needed()?;
         let code = Command::new("powershell").args(["-NoProfile", "-Command", "wsl --install --no-distribution"]).spawn()?.wait()?;
         if code.success() {
             self.installed = true;
@@ -71,7 +73,7 @@ impl WslHelper {
     }
 
     pub fn setup_distro(&self, vhdx_path: &str) -> Result<(), WslError> {
-        let code = Command::new("powershell").args(["-NoProfile", "-Command", format!("wsl --import-in-place {} {}", DISTRO_NAME, vhdx_path)]).spawn()?.wait()?;
+        let code = Command::new("powershell").args(["-NoProfile", "-Command", format!("wsl --import-in-place {} {}", DISTRO_NAME, vhdx_path).as_str()]).spawn()?.wait()?;
         if code.success() {
             Ok(())
         } else {
