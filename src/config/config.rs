@@ -210,7 +210,11 @@ pub fn load_package(lua: &Lua, package: &str) -> Result<Package, ConfigError> {
     globals.set("package", package_fn)?;
 
     // Load and run the Lua file
-    let path = &IMPORTANT_DIRS.recipes.join(format!("{}.lua", package));
+    let letter = match package.chars().next() {
+        Some(char) => char,
+        None => return Err(ConfigError::FirstChar)
+    };
+    let path = &IMPORTANT_DIRS.recipes.join(letter.to_string()).join(format!("{}.lua", package));
     let code = fs::read_to_string(path)?;
     lua.load(&code).exec()?;
 

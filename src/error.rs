@@ -64,7 +64,9 @@ pub enum ConfigError {
     #[error(transparent)]
     FileRead(#[from] io::Error),
     #[error("Lua recipe file did not call package")]
-    PackageNotCalled
+    PackageNotCalled,
+    #[error("Failed to get first char of package name")]
+    FirstChar
 }
 
 #[derive(Error, Debug)]
