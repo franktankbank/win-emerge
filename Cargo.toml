@@ -4,19 +4,49 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-clap = { version = "4.6.0", features = ["color", "derive", "error-context", "help", "std", "unicode", "usage", "wrap_help"], default-features = false }
-git2 = { version = "0.20.4", default-features = false, features = ["https", "vendored-libgit2", "vendored-openssl"] }
-indicatif = { version = "0.18.4", features = ["improved_unicode", "rayon"] }
-mlua = { version = "0.11.6", features = ["anyhow", "lua54", "vendored"] }
 natord = "1.0.9"
 num_cpus = "1.17.0"
 platform-dirs = "0.3.0"
 regex = "1.12.3"
-reqwest = { version = "0.13.2", default-features = false, features = ["native-tls", "http2", "stream", "charset", "blocking"] }
 thiserror = "2.0.18"
 wslpath2 = "0.1.3"
-zstd = { version = "0.13.3", default-features = false }
 
-[target.'cfg(windows)'.dependencies]
-winreg = "0.56.0"
+[dependencies.mlua]
+version = "0.11.6"
+features = ["lua54", "vendored"]
+default-features = false
+
+[dependencies.clap]
+version = "4.6.0"
+features = ["color", "derive", "error-context", "help", "std", "unicode", "usage", "wrap_help"]
+default-features = false
+
+[dependencies.git2]
+version = "0.20.4"
+default-features = false
+
+[dependencies.indicatif]
+version = "0.18.4"
+features = ["improved_unicode", "rayon"]
+
+[dependencies.reqwest]
+version = "0.13.2"
+features = ["native-tls", "http2", "stream", "charset", "blocking"]
+default-features = false
+
+[dependencies.zstd]
+version = "0.13.3"
+default-features = false
+
+[target."cfg(windows)".dependencies]
 deelevate = "0.2.0"
+winreg = "0.56.0"
+
+[target."cfg(windows)".dev-dependencies]
+
+[target."cfg(windows)".build-dependencies]
+
+[profile.release]
+lto = true
+panic = "abort"
+strip = true
