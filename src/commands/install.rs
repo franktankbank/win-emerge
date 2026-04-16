@@ -27,7 +27,7 @@ pub fn install(package: &str) -> Result<(), InstallError> {
     let path = Path::new("/home").join(WSL_USER).join(&pkg.metadata.name);
     let _ = repo_builder.clone(&pkg.metadata.source_url, path.as_path())?;
 
-    let runtime: PackageRuntime = PackageRuntime::new(&lua, &pkg.metadata.build_mode.as_str(), path.clone()).map_err(|e| ConfigError::Lua(e))?;
+    let runtime: PackageRuntime = PackageRuntime::new(&lua, pkg.metadata.build_mode.as_str(), path.clone()).map_err(ConfigError::Lua)?;
 
     println!("Building: {}", package);
     runtime.run_build(&pkg.build)?;

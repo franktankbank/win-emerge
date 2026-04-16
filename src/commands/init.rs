@@ -26,15 +26,15 @@ pub fn init(force: bool) -> Result<(), InitError> {
         }
     } else {
         println!("Creating data directory: {}", APP_DIRS.data_dir.display());
-        fs::create_dir(&APP_DIRS.data_dir).map_err(|e| InitError::CreateDir(e))?;
+        fs::create_dir(&APP_DIRS.data_dir).map_err(InitError::CreateDir)?;
     }
 
     if IMPORTANT_DIRS.vcpkg.exists() {
-        fs::remove_dir_all(&IMPORTANT_DIRS.vcpkg).map_err(|e| InitError::RemoveDir(e))?;
+        fs::remove_dir_all(&IMPORTANT_DIRS.vcpkg).map_err(InitError::RemoveDir)?;
     }
 
     println!("Creating vcpkg directory: {}", &IMPORTANT_DIRS.vcpkg.display());
-    fs::create_dir(&IMPORTANT_DIRS.vcpkg).map_err(|e| InitError::CreateDir(e))?;
+    fs::create_dir(&IMPORTANT_DIRS.vcpkg).map_err(InitError::CreateDir)?;
 
     let vcpkg_url: &str = "https://github.com/microsoft/vcpkg.git";
     println!("Finding latest vcpkg version");
@@ -51,23 +51,23 @@ pub fn init(force: bool) -> Result<(), InitError> {
     }
 
     println!("downloading wsl image");
-    let input_file_str = download("https://github.com/franktankbank/win-emerge-files/raw/refs/heads/main/ext4.vhdx.zst", &APP_DIRS.data_dir.join("ext4.vhdx.zst").to_str().unwrap())?;
+    let input_file_str = download("https://github.com/franktankbank/win-emerge-files/raw/refs/heads/main/ext4.vhdx.zst", APP_DIRS.data_dir.join("ext4.vhdx.zst").to_str().unwrap())?;
     let output_file_str = input_file_str.clone().replace(".zst", "");
 
     println!("Decompressing wsl image");
     decode_zstd(input_file_str.as_str(), output_file_str.as_str())?;
 
-    fs::remove_file(input_file_str).map_err(|e| InitError::RemoveFile(e))?;
+    fs::remove_file(input_file_str).map_err(InitError::RemoveFile)?;
 
     println!("setting up distro from wsl image");
     wsl_helper.setup_distro(&output_file_str)?;
 
     if IMPORTANT_DIRS.recipes.exists() {
-        fs::remove_dir_all(&IMPORTANT_DIRS.recipes).map_err(|e| InitError::RemoveDir(e))?;
+        fs::remove_dir_all(&IMPORTANT_DIRS.recipes).map_err(InitError::RemoveDir)?;
     }
 
     println!("Creating recipe directory: {}", &IMPORTANT_DIRS.recipes.display());
-    fs::create_dir(&IMPORTANT_DIRS.recipes).map_err(|e| InitError::CreateDir(e))?;
+    fs::create_dir(&IMPORTANT_DIRS.recipes).map_err(InitError::CreateDir)?;
 
     let recipes_url = "https://github.com/franktankbank/win-emerge-recipes.git";
 
@@ -75,8 +75,8 @@ pub fn init(force: bool) -> Result<(), InitError> {
     Repository::clone(recipes_url, &IMPORTANT_DIRS.recipes)?;
 
     println!("Installing vcpkg");
-    Command::new(&IMPORTANT_DIRS.vcpkg.join("bootstrap-vcpkg.bat")).arg("-disableMetrics").output().map_err(|e| InitError::Cmd(e))?;
+    Command::new(IMPORTANT_DIRS.vcpkg.join("bootstrap-vcpkg.bat")).arg("-disableMetrics").output().map_err(InitError::Cmd)?;
 
     println!("Initialization complete");
-    Ok(reg::write_initialized_flag().map_err(|e| InitError::Reg(e))?)
+    reg::write_initialized_flag().map_err(InitError::Reg)
 }

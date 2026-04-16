@@ -52,11 +52,11 @@ impl WslHelper {
 
         if let Ok(output) = output {
             let stdout = utf16le_to_string(&output.stdout).to_lowercase();
-            return Ok(Self {
+            Ok(Self {
                 installed: stdout.contains("default version: 2") || stdout.contains("wsl version: 2")
             })
         } else {
-            return Ok(Self {
+            Ok(Self {
                 installed: false
             })
         }

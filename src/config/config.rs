@@ -1,7 +1,6 @@
 use std::{fs, path::PathBuf, process::Command};
 
 use mlua::{Lua, prelude::{LuaUserData, LuaUserDataMethods, LuaError, LuaFunction, LuaAnyUserData, LuaTable}};
-use num_cpus;
 
 use crate::core::{latest_version, IMPORTANT_DIRS};
 use crate::wsl::{DISTRO_NAME, setup_shell, wsl_write_to_stdin};
@@ -82,7 +81,7 @@ impl LuaUserData for Context {
                     }
                 },
                 "wsl" => {
-                        wsl_write_to_stdin(cmd).map_err(|e| LuaError::external(e))?;
+                        wsl_write_to_stdin(cmd).map_err(LuaError::external)?;
                 },
                 _ => return Err(LuaError::external(format!(
                     "Mode '{}' is not a valid mode",
@@ -97,14 +96,15 @@ impl LuaUserData for Context {
 impl Context {
     pub fn new(prefix: String, target: String, jobs: usize, mode: String) -> Self {
         Self {
-            prefix: prefix,
-            target: target,
-            jobs: jobs,
-            mode: mode
+            prefix,
+            target,
+            jobs,
+            mode
         }
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct PackageMetadata {
     pub name: String,
@@ -130,8 +130,8 @@ impl PackageRuntime {
         let prefix: String = match mode {
             "native" => IMPORTANT_DIRS.prefix.to_string_lossy().into(),
             "wsl" => {
-                setup_shell().map_err(|e| LuaError::external(e))?;
-                wsl_write_to_stdin(format!("cd '{}'", build_path.to_str().unwrap())).map_err(|e| LuaError::external(e))?;
+                setup_shell().map_err(LuaError::external)?;
+                wsl_write_to_stdin(format!("cd '{}'", build_path.to_str().unwrap())).map_err(LuaError::external)?;
                 wslpath2::convert(IMPORTANT_DIRS.prefix.to_str().unwrap(), Some(DISTRO_NAME), wslpath2::Conversion::WindowsToWsl, true).unwrap()
             },
             _ => return Err(LuaError::external("Invalid build_mode detected. Only 'wsl' and 'native' are valid."))

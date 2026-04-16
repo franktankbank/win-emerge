@@ -61,7 +61,7 @@ pub fn get_latest_tag(url: &str, pattern: &str) -> Result<String, CoreError> {
 
     let mut tags: Vec<String> = connection.list()?
         .iter()
-        .filter_map(|r| Some(r.name()))
+        .map(|r| r.name())
         .map(|n| n.strip_prefix("refs/tags/").unwrap_or(n).to_string())
         .map(|n| n.strip_suffix("^{}").unwrap_or(&n).to_string())
         .filter(|name| re.is_match(name))

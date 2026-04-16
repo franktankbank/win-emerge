@@ -26,7 +26,7 @@ pub fn download(url: &str, output_file: &str) -> Result<String, DownloadError> {
     );
 
     let path = Path::new(output_file);
-    let mut file = match File::create(&path) {
+    let mut file = match File::create(path) {
         Ok(f) => f,
         Err(e) => return Err(DownloadError::FileCreation(e))
     };
