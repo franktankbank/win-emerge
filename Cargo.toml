@@ -24,6 +24,7 @@ default-features = false
 [dependencies.git2]
 version = "0.20.4"
 default-features = false
+features = ["https", "vendored-libgit2", "vendored-openssl"]
 
 [dependencies.indicatif]
 version = "0.18.4"
